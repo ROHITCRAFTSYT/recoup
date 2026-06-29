@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/*
+ * Recoup design system — warm, editorial, finance-grade.
+ * Palette is the "Claude" family: ivory paper, warm near-black ink, and a
+ * clay/terracotta accent. No cold SaaS blue, no emoji. Numbers are tabular.
+ */
+:root {
+  --background: #faf9f5; /* warm paper */
+  --surface: #ffffff;
+  --surface-2: #f4f2ec; /* warm panel / inset */
+  --foreground: #20201d; /* warm near-black ink */
+  --muted: #6b655b; /* warm gray */
+  --border: #e9e5db; /* warm hairline */
+  --accent: #bd5d3a; /* clay / terracotta */
+  --accent-soft: #f3e3da; /* clay wash */
+  --accent-fg: #ffffff;
+
+  /* Semantic, all warmed to sit on paper */
+  --positive: #3f7a5a; /* recovered / paid */
+  --positive-soft: #e3efe7;
+  --warning: #b07d2b; /* promised / partial */
+  --warning-soft: #f6ecd6;
+  --danger: #b4452f; /* overdue / legal */
+  --danger-soft: #f6e2db;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-positive: var(--positive);
+  --color-positive-soft: var(--positive-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-serif: var(--font-serif);
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Money & metrics read as a ledger — lining, tabular figures. */
+.tnum {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* Editorial display face for wordmark, page titles, and big numbers. */
+.font-display {
+  font-family: var(--font-serif), Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+/* Thin, unobtrusive scrollbars for the board columns. */
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: #d8d2c6;
+  border-radius: 9999px;
+}
+
+/* Subtle entrance for streamed cards / metrics. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  animation: rise 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* A premium sheen that sweeps across a primary CTA on hover. */
+.cta-shine {
+  position: relative;
+  overflow: hidden;
+}
+.cta-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 70%
+  );
+  transform: translateX(-130%);
+  transition: transform 0.7s ease;
+  pointer-events: none;
+}
+.cta-shine:hover::after {
+  transform: translateX(130%);
+}

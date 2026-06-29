@@ -1,0 +1,137 @@
+// Prisma schema for Recoup — the AI AR-Collections & Cash-Recovery Desk.
+// PostgreSQL (Neon) so it runs on serverless (Vercel). Locally you can point
+// DATABASE_URL at any Postgres; the DB choice is hidden behind
+// src/lib/lemma/datastore.ts, so call sites never change.
+//
+// Money is stored as integer paise (₹1 = 100 paise) to avoid float drift.
+
+generator client {
+  provider      = "prisma-client-js"
+  // native for local dev; rhel-openssl-3.0.x for Vercel's serverless runtime.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled (runtime)
+  directUrl = env("DIRECT_URL") // direct (migrations); falls back to DATABASE_URL
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String // bcrypt hash
+  createdAt DateTime @default(now())
+
+  assigned Invoice[] @relation("AssignedInvoices")
+}
+
+// The debtor — a business that owes money on one or more invoices.
+model Account {
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  contactName    String
+  phone          String? // WhatsApp number
+  telegramChatId String? // Telegram chat id for two-way debtor messaging
+  segment        String   @default("SMB") // SMB | Mid-Market | Enterprise
+  createdAt      DateTime @default(now())
+
+  invoices Invoice[]
+}
+
+// A collection case: one overdue invoice the desk is recovering.
+model Invoice {
+  id          String   @id @default(cuid())
+  number      String   @unique // human ref, e.g. INV-2041
+  amountPaise Int // original amount due, in paise
+  paidPaise   Int      @default(0) // amount recovered so far
+  currency    String   @default("INR")
+  issueDate   DateTime
+  dueDate     DateTime
+  status      String   @default("outstanding") // see INVOICE_STATUSES in ui.ts
+  riskScore   Int? // 0–100 collectability (higher = more likely to pay)
+  strategy    String? // nudge | firm | final | settle | legal
+  summary     String? // one-line AI read on the case
+  notes       String? // free-text context (e.g. "promised to pay by Fri")
+  lastAnalyzedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id])
+
+  assigneeId String?
+  assignee   User?   @relation("AssignedInvoices", fields: [assigneeId], references: [id])
+
+  outreach Outreach[]
+  actions  ProposedAction[]
+}
+
+// A single communication on the dunning thread (sent or received).
+model Outreach {
+  id        String   @id @default(cuid())
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  direction String // outbound | inbound
+  channel   String // email | whatsapp
+  author    String
+  body      String
+  createdAt DateTime @default(now())
+}
+
+// The agent's proposed next move. Money / legal moves carry requiresApproval=true
+// and wait in the Authorizations queue until a human signs off.
+model ProposedAction {
+  id                 String   @id @default(cuid())
+  invoiceId          String
+  invoice            Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  kind               String // reminder | payment_plan | settlement | write_off | escalate_legal
+  channel            String   @default("email")
+  body               String // the message text to send
+  financialImpactPaise Int    @default(0) // ₹ at stake: discount/write-off amount
+  rationale          String // why the agent recommends this
+  citations          String   @default("[]") // JSON [{ policyId, title, snippet }]
+  requiresApproval   Boolean  @default(true)
+  status             String   @default("proposed") // proposed | approved | rejected | sent
+  createdAt          DateTime @default(now())
+}
+
+// The collections playbook — policy the agent grounds its offers in.
+model Policy {
+  id        String   @id @default(cuid())
+  title     String
+  source    String // manual | upload
+  rawText   String
+  createdAt DateTime @default(now())
+
+  chunks PolicyChunk[]
+}
+
+model PolicyChunk {
+  id        String   @id @default(cuid())
+  policyId  String
+  policy    Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  content   String
+  embedding String? // JSON array of floats; null => keyword fallback
+  createdAt DateTime @default(now())
+}
+
+// Append-only audit trail — who authorized what, when, and for how much.
+// Deliberately not FK-constrained to invoices so history survives deletion.
+model ActivityLog {
+  id          String   @id @default(cuid())
+  invoiceId   String?
+  type        String // ingested | analyzed | reminder_sent | proposed | authorized | declined | paid | reply | notified
+  message     String
+  actor       String   @default("system") // system | agent | <user> | debtor
+  amountPaise Int?
+  createdAt   DateTime @default(now())
+}
+
+// Tiny key/value store (e.g. Telegram getUpdates offset).
+model Setting {
+  key   String @id
+  value String
+}
