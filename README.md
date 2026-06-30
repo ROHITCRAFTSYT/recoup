@@ -7,6 +7,11 @@
 ![Live on Lemma](https://img.shields.io/badge/Live%20on-Lemma%20pod-bd5d3a)
 ![License: MIT](https://img.shields.io/badge/License-MIT-3f7a5a)
 
+### ▶︎ [**Live demo → recoup-self.vercel.app**](https://recoup-self.vercel.app)
+
+> Sign in with the pre-filled demo account — **`demo@recoup.app`** / **`demo1234`** — and
+> hit **⚡ Run recovery** on the board to watch the agent work.
+
 An **agentic accounts-receivable desk** that recovers overdue invoices for small
 businesses — built for the **Gappy.AI National AI Hackathon (powered by the
 Lemma SDK)**.
